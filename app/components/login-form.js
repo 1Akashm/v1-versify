@@ -1,3 +1,5 @@
+"use client";
+
 import { cn } from "cn";
 
 import { Button } from "@/components/ui/button";
@@ -16,8 +18,50 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { authClient } from "@/lib/auth-client";
 
 export function LoginForm({ className, ...props }) {
+  const router = useRouter();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+
+  useEffect(() => {
+  return () => {
+    setEmail("");
+    setPassword("");
+    setError("");
+    setLoading(false);
+  };
+}, []);
+
+  async function login(e) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      const { error } = await authClient.signIn.email({ email, password });
+
+      if (error) {
+        setError(error.message || "Invalid email or password");
+        return;
+      }
+
+      router.push("/dashboard");
+      router.refresh();
+    } catch (err) {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
@@ -28,7 +72,7 @@ export function LoginForm({ className, ...props }) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form>
+          <form onSubmit={login}>
             <FieldGroup>
               <Field>
                 <FieldLabel htmlFor="email">Email</FieldLabel>
@@ -36,6 +80,8 @@ export function LoginForm({ className, ...props }) {
                   id="email"
                   type="email"
                   placeholder="m@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   required
                 />
               </Field>
@@ -52,13 +98,24 @@ export function LoginForm({ className, ...props }) {
                 <Input
                   id="password"
                   type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="password"
                   required
                 />
               </Field>
+              {error && (
+                <p className="text-sm text-red-600" role="alert">
+                  {error}
+                </p>
+              )}
               <Field>
-                <Button className="cursor-pointer" type="submit">
-                  Login
+                <Button
+                  className="cursor-pointer"
+                  type="submit"
+                  disabled={loading}
+                >
+                  {loading ? "Logging in..." : "Login"}
                 </Button>
                 <Button
                   className="cursor-pointer"
